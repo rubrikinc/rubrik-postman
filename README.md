@@ -48,6 +48,6 @@ Requirements: Postman v6.6.1 or higher has been successfully [installed](https:/
 
 * The Swagger conversion process results in URLs with `:id` in them. This is actually a Postman variable that is listed in the parameters and is usually set to `me`. Use the `GENERATE CODE SNIPPETS` feature of Postman to view the proper syntax of the URL.
 
-<img src="https://github.com/rubrikinc/rubrik-postman/images/GenerateCodeSnippets.png">
-<img src="https://github.com/rubrikinc/rubrik-postman/images/CodeSnippet.png">
+<img src="https://github.com/rubrikinc/rubrik-postman/blob/master/images/GenerateCodeSnippets.png">
+<img src="https://github.com/rubrikinc/rubrik-postman/blob/master/images/CodeSnippet.png">
 
