@@ -4,6 +4,13 @@
 
 <img src="https://www.getpostman.com/img/logos/postman/header-treatment.svg">
 
+## Introduction
+
+Postman is a free application for MacOS, Windows, Linux, and Chrome. It is used to explore APIs, build workflows, and share samples with customers and the team. It's especially handy for:
+
+* Building dynamic variables to quickly use the Rubrik API across a multitude of environments.
+* Performing a brief demo of one or more API endpoints to showcase functionality.
+* Collecting information from a customer site without the need to install or maintain a development platform.
 
 ## Installation
 
