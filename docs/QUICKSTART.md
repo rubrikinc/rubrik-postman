@@ -1,4 +1,4 @@
-Quick Start Guide: Rubrik Postman
+# Quick Start Guide: Rubrik Postman
 
 1. Copy the `Rubrik - Sample Environment` and give it a name that pertains to the specific Rubrik cluster that will be administered.
 
