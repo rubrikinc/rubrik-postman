@@ -14,7 +14,6 @@ Quick Start Guide: Rubrik Postman
 
 ## Known Issues
 
-
 The Swagger conversion process results in URLs with `:id` in them. This is actually a Postman variable that is listed in the parameters and is usually set to `me`. Use the `GENERATE CODE SNIPPETS` feature of Postman to view the proper syntax of the URL.
 
 <img src="https://user-images.githubusercontent.com/8610203/53531442-da28a100-3ab8-11e9-9821-1cecef993c6e.png">
