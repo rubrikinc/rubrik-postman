@@ -1,0 +1,622 @@
+{
+	"info": {
+		"_postman_id": "79ed4c15-02e8-4a48-a799-87fa0160789f",
+		"name": "Rubrik v2 REST API",
+		"description": "\nCopyright © 2017-2018 Rubrik Inc. [Legal](#section/Legal)\n\n# Introduction\n\nWelcome to the Rubrik™ REST API documentation.\n\nThe Rubrik REST API provides a RESTful interface for working with Rubrik clusters and Rubrik Edge virtual appliances. The Rubrik REST API can be used to query, configure, and control nearly all of the operations of the Rubrik software.\n\nThrough authenticated and encrypted interaction with the Rubrik REST API server, perform any of the operations that are available through the Rubrik web UI and many bulk-type operations that might otherwise be difficult or impossible to perform.\n\nThis documentation provides reference information and examples of typical workflows for the Rubrik REST API. For more detailed information about working with Rubrik clusters and Rubrik Edge virtual appliances refer to the *Rubrik User Guide*.\n\nA quick way to become familiar with the Rubrik REST API, is to use the Rubrik REST API Explorer. [OpenAPI](#section/OpenAPI) describes this tool.\n\nRefer to the [changelog](#section/Changelog) to see information about changes within this version of the Rubrik REST API.\n\n# Changelog\n\nRevisions are listed with the most recent revision first.\n\n### Changes to V2 API in Rubrik version 5.1.0\n## Feature Additions/improvements:\n* Added optional field archivalTieringSpec to ArchivalSpec to support archival\n  tiering. This enables the user to configure either Instant Tiering or Smart\n  Tiering (with a corresponding minimum accessible duration) on an SLA domain\n  with archival configured to an Azure archival location.\n* Added optional field logConfig to SlaDomainSummaryV2, SlaDomainDefinitionV2\n  and SlaDomainPatchDefintionV2 to support CDP (ctrlc). The parameters\n  distinguish SLAs with CDP enabled from SLAs with CDP disabled, and enable\n  users to specify log retention time. The field also provides an optional\n  frequency parameter whhich can be used by Oracle and SQL Server log backups.\n* Added optional field logRetentionLimit to ReplicationSpec to support\n  CDP replication. The field gives the retention limit for logs at the\n  specified location.\n* Added new optional query parameters 'data_sources' and 'snapshot_ids' to\n  'GET /sla_domain' endpoint. This allows users to filter SLA Domains based\n  on whether they can be assigned to specified data sources and snapshots.\n\n## New features:\n* Added new tag `/vmware/vm/` for VMware virtual machine endpoints.\n* Added new endpoint `/vmware/vm/{id}/mount` for live mount under /vmware/vm/\n  tag. The endpoint takes in a required body parameter MountSnapshotJobConfigV2,\n  which includes a snapshot ID and timestamp. When the snapshot ID is passed\n  without a timestamp, this endpoint triggers a live mount using the given\n  snapshot ID. When this endpoint is passed a recovery point or a recovery\n  point and snapshot ID, the endpoint triggers a live mount using the point\n  in time (PIT) for recovery. Calling this endpoint without a recovery point\n  or a snapshot ID triggers a PIT live mount that uses the most recent time\n  available.\n* Added new endpoint `/vmware/vm/{id}/instant_recover` for instant recovery\n  with PIT support. Endpoint follows the same conventions as the mount endpoint\n  described above. The endpoint takes in a required body parameter\n  InstantRecoveryJobConfigV2, which includes a snapshot ID and timestamp. When\n  the snapshot ID is passed without a timestamp, this endpoint triggers an\n  instant recovery using the given snapshot ID. When this endpoint is passed a\n  recovery point or a recovery point and snapshot ID, the endpoint triggers an\n  instasnt recovery using the point in time (PIT) for recovery. Calling this\n  endpoint without a recovery point or snapshot ID triggers a PIT instant\n  recovery that uses the most recent time available.\n* Added new endpoint `/vmware/vm/{id}/export` for export under /vmware/vm/\n  tag. The endpoint takes in a required body parameter \n  ExportSnapshotJobConfigV2, which includes a snapshot ID and timestamp. When\n  the snapshot ID is passed without a timestamp, this endpoint triggers an\n  export using the given snapshot ID. When this endpoint is passed a recovery\n  point or a recovery point and snapshot ID, the endpoint triggers an export \n  using the point in time (PIT) for recovery. Calling this endpoint without a\n  recovery point or a snapshot ID triggers a PIT export that uses the most \n  recent time available.\n* Added an optional field 'isRetentionLocked' to 'POST /sla_domain' and\n  'PATCH /sla_domain/{id}' to allow users to manage the Retention Lock\n  capabilities of an SLADomain.\n\n### Changes to V2 API in Rubrik Version 5.0.3\n## Deprecation:\n\n## New features and improvements:\n\n### Changes to V2 API in Rubrik Version 5.0.2\n## Deprecation:\n\n## New features and improvements:\n\n### Changes to V2 API in Rubrik Version 5.0.1\n## Deprecation:\n\n## New features and improvements:\n\n### Changes to V2 API in Rubrik Version 5.0.0\nInitial GA release.\n\n## New features:\n* Modified the `/sla_domain` endpoints to add support for weekly and quarterly\n  time units.\n\n# OpenAPI\nThe Rubrik REST API specification conforms to the OpenAPI 2.0 Specification. Tools that work with the OpenAPI 2.0 Specification can be used with the Rubrik REST API specification.\n\nDevelopment releases (pre-1.0) of the Rubrik REST API specification made reference to 'swagger'. The previous release of the OpenAPI 2.0 Specification was named the Swagger 1.2 Specification.\n\nDownload the Rubrik REST API specification for your tools. [Download](./api-docs)\n\n## Rubrik REST API Explorer\nThe Rubrik REST API Explorer is a browser-based API client hosted by the Rubrik cluster. The Explorer has the Rubrik REST API specification built in. You can use the Explorer to try out Rubrik REST API calls and view the responses.\n\n**IMPORTANT:** The Explorer interacts with the Rubrik cluster through the API calls you make. Use care when making calls that modify or delete configurations and data.\n\nTo access the Rubrik REST API Explorer, click: [Rubrik REST API Explorer](./playground/)\n\n# SLA Domains\n\nRubrik clusters provide automated data management and protection through SLA Domains.\nAn SLA Domain defines the data management and protection policies for their assigned snappables (virtual machines, file systems, and applications).\n\nTo provide policy based management and protection of a snappable, add the snappable to an SLA Domain, or to multiple SLA Domains.\n\n## Retrieving SLA Domains\n\nBefore assigning snappables to SLA Domains, get a list of the SLA Domains that exist on a Rubrik cluster. For a new Rubrik cluster, the list shows only the default SLA Domains. When custom SLA Domains are added to the Rubrik cluster, the list is modified to include those SLA Domains.\n\n**Example:** Retrieving SLA Domains from a Rubrik cluster\n\nSend a GET request to [`/sla_domain`](#operation/querySlaDomainV2).\n\n```bash\ncurl -X GET \"https://$cluster_address/api/v2/sla_domain\"\n```\n\nThe Rubrik REST API server returns a `ListResponse` object of all SLA Domains. A `ListResponse` object includes all of the SLA Domains on the Rubrik cluster, including SLA Domains created through a v1 SLA Domain endpoint. The `ListResponse` object always includes the default SLA Domains: Gold, Silver, and Bronze.\n\n```bash\n{\n  \"data\": [\n    {\n      \"id\": \"$gold_sla_id\",\n      \"name\": \"Gold\"\n    },\n    {\n      \"id\": \"$silver_sla_id\",\n      \"name\": \"Silver\"\n    },\n    {\n      \"id\": \"$bronze_sla_id\",\n      \"name\": \"Bronze\"\n    }\n  ],\n  \"hasMore\": false,\n  \"total\": 3\n}\n```\n\nFor more details about an SLA domain, send a GET request to the `/sla_domain/{id}` endpoint and provide the ID of the SLA domain, for example:  [`/sla_domain/{id}`](#operation/getSlaDomainV2)\n\n```bash\ncurl -X GET \"https://$cluster_address/api/v2/sla_domain/$bronze_sla_id\"\n```\nThe Rubrik REST API server responds with the details of the specified SLA Domain.\n\n```bash\n{\n  \"id\": \"$bronze_sla_id\",\n  \"primaryClusterId\": \"$cluster_id\",\n  \"name\": \"Bronze\",\n  \"frequencies\": [\n    \"daily\": {\n      \"frequency\": 1,\n      \"retention\": 32\n    },\n    \"weekly\": {\n      \"frequency\": 1,\n      \"retention\": 12,\n      \"dayOfWeek\": \"Monday\"\n    },\n    \"monthly\": {\n      \"frequency\": 1,\n      \"retention\": 12,\n      \"dayOfMonth\": \"LastDay\"\n    },\n    \"quarterly\" {\n      \"frequency\": 1,\n      \"retention\": 2,\n      \"quarterStarts\": \"January\",\n      \"dayOfQuarter\": \"LastDay\"\n    },\n    \"yearly\": {\n      \"frequency\": 1,\n      \"retention\": 2,\n      \"yearStarts\": \"January\",\n      \"dayOfYear\": \"LastDay\"\n    }\n  ],\n  \"allowedBackupWindows\": [],\n  \"firstFullAllowedBackupWindows\": [],\n  \"archivalSpecs\": [],\n  \"replicationSpecs\": [\n    {\n      \"locationId\": \"$repl_location_id\",\n      \"retentionLimit\": 0\n    }\n  ],\n  \"numDbs\": 0,\n  \"numFilesets\": 7,\n  \"numLinuxHosts\": 3,\n  \"numWindowsHosts\": 2,\n  \"numVms\": 1,\n  \"isDefault\": false,\n  \"uiColor\": \"#cc8366\",\n  \"showAdvancedUi\": false,\n  \"advancedUiConfig\": []\n}\n```\n\n## Working with SLA Domains\n\nTo work with an SLA Domain, obtain the `id` of that SLA Domain. As described in [Retrieving SLA Domains](#section/SLA-Domains/Retrieving-SLA-Domains), start by sending a GET request to [`/sla_domain`](#operation/querySlaDomainV2).\n\nThe Rubrik REST API server responds with a `ListResponse` object that contains all of the SLA Domains on the specfied Rubrik cluster. From that list object, find the data array element that has the `name` value of the selected SLA Domain. In the same array element as the `name` value, note the value of the `id` string.\n\n## Creating SLA Domains\n\nTo create an SLA domain send a POST request to [`/sla_domain`](#operation/createSlaDomainV2). Include the attributes for the SLA Domain in the request body.\n\nThe following table describes the required and optional attributes to include in the request body when creating an SLA Domain.\n\n| Attribute | Req'd | JSON Type | Description |\n| ------ | --- | ----- | ----------- |\n| `name` | Yes | String | Name of the SLA Domain.  |\n| `frequencies` | Yes | Object | Each member defines a policy by specifying: `frequency`, and `retention`. For `weekly`, it defines one more field `dayOfWeek`. For `monthly`, it defines one more field `dayOfMonth`. For `quarterly`, it defines two more fields `firstQuarterStartMonth` and `dayOfQuarter`. For `yearly`, it defines two more fields `yearStartMonth` and `dayOfYear`. Requires at least one member in the object.  |\n| `allowedBackupWindows` | Yes | Array | Each member defines a backup window using values for `startTimeAttributes` and `durationInHours`. The time specified in `startTimeAttributes` uses the Rubrik cluster time zone. To specify multiple backup windows, add an array member for each window. To create an SLA Domain without a backup window, specify a null array value: `[]`.  |\n| `firstFullAllowedBackupWindows` | Yes | Array | Each member defines a period when first full backups are allowed by specifying: `startTimeAttributes` and `durationInHours`. Several first full backup windows can be specified by adding an array member for each one. Create an SLA Domain without a first full backup window by specifying a null array value: `[]`.  |\n| `localRetentionLimit` | No | String | Specify an integer value to set the number of days to retain a local copy of a snapshot. When an archival location is specified, specify `0` to enable Instant Archiving. |\n| `archivalSpecs` | No | Array | Defines the archival location for the SLA Domain by specifying: `locationId` and `archivalThreshold`. Currently limited to one array member. |\n| `replicationSpecs` | No | Array | Defines the replication location for the SLA Domain by specifying: `locationId` and `retentionLimit`. Currently limited to one array member. |\n\nThe following table describes the required attributes for each time unit in `frequency`\n| Attribute | Req'd | JSON Type | Description |\n| ------ | --- | ----- | ----------- |\n| `dayOfWeek` | Yes | String | Defines as enum and only accepts `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday` and `Sunday`.  |\n| `dayOfMonth` | Yes | String | Defines as enum and only accepts `FirstDay`, `Fifteenth` and `LastDay`.  |\n| `firstQuarterStartMonth` | Yes | String | Defines as enum and only accepts `January`, `February`, `March`, `April`, `May`, `June`, `July`, `August`, `September`, `October`, `November` and `December`. |\n| `dayOfQuarter` | Yes | String | Defines as enum and only accepts `FirstDay` and `LastDay`. |\n| `yearStartMonth` | Yes | String | Defines as enum and only accepts `January`, `February`, `March`, `April`, `May`, `June`, `July`, `August`, `September`, `October`, `November` and `December`.  |\n| `dayOfYear` | Yes | String | Defines as enum and only accepts `FirstDay` and `LastDay`. |\n\n**Example:** Creating an SLA Domain for daily backups\n\nCreate an SLA Domain that takes a backup once a day and retains the backup for seven days. Do not set a backup window or a first full backup window. Do not include archival or replication.\n\n```bash\ncurl -X POST \\\n  -d '{\n  \"name\": \"Daily SLA\",\n  \"frequencies\": [\n    \"daily\": {\n      \"frequency\": 1,\n      \"retention\": 7\n    }\n  ],\n  \"allowedBackupWindows\": [],\n  \"firstFullAllowedBackupWindows\": [] }' \\\n  \"https://$cluster_address/api/v2/sla_domain\"\n```\nThe response confirms the attributes of the SLA Domain and provides the `id` of the new SLA Domain.\n\n```bash\n{\n  \"id\": \"$sla_id\",\n  \"name\": \"Daily SLA\",\n  \"frequencies\": [\n    \"daily\": {\n      \"frequency\": 1,\n      \"retention\": 7\n    }\n  ],\n  \"allowedBackupWindows\": [],\n  \"firstFullAllowedBackupWindows\": []\n}\n```\n\n## Patching SLA Domains\n\nTo patch the attributes of an SLA domain, send a PATCH request to\n[`/sla_domain/{id}`](#operation/patchSlaDomainV2). Include in the request body\nonly the attributes that needs to be patched.\n\n**Example:** Patching the daily backup SLA Domain\n\nPatch the SLA Domain that was created in [Creating SLA Domains](#section/SLA-Domains/Creating-SLA-Domains) to change the archival specifications.\n\n```bash\ncurl -X PATCH \\\n  -d '{\n  \"archivalSpecs\": [\n    {\n        \"locationId\": \"some-valid-archived-location-id\",\n        \"archivalThreshold\": 14\n    }\n  ]}' \\\n  \"https://$cluster_address/api/v2/sla_domain/$sla_id\"\n```\nThe response confirms the new attribute and also includes the other\nattributes that were not changed.\n\n```bash\n{\n  \"id\": \"$sla_id\",\n  \"name\": \"Daily SLA\",\n  \"frequencies\": [\n    \"daily\": {\n      \"frequency\": 1,\n      \"retention\": 7\n    }\n  ],\n  \"archivalSpecs\": [\n    {\n      \"locationId\": \"some-valid-archived-location-id\",\n      \"archivalThreshold\": 14\n    }\n  ],\n  \"allowedBackupWindows\": [],\n  \"firstFullAllowedBackupWindows\": []\n}\n```\n\n## Deleting SLA Domains\n\nTo delete an SLA Domain send a DELETE request to [`/sla_domain/{id}`](#operation/deleteSlaDomainV2).\n\n**Example:** Deleting an SLA Domain\n\nDelete an SLA Domain with the ID of `$sla_id`.\n\n```bash\ncurl -X DELETE \"https://$cluster_address/api/v2/sla_domain/$sla_id\"\n```\nThe Rubrik REST API server responds with HTTP response code 204. This indicates the request succeeded and the response body is empty.\n\n## Pausing SLA Domains\n\nTo pause the SLA domain, send a POST request to\n[`/sla_domain/{id}`](#operation/pauseSlaDomainV2).\nInclude the isPaused attribute in the request body to pause or resume the\nSLA Domain. Pausing an SLA Domain pauses backup, archival, and replication jobs\nfor all data sources that are protected by that SLA Domain.\n\n**Example:** Pausing the daily backup SLA Domain\n\nUpdate the SLA Domain that was created in\n[Creating SLA Domains](#section/SLA-Domains/Creating-SLA-Domains) to pause\nprotection.\n\n```bash\ncurl -X POST \\\n  -d '{\n  \"isPaused\": true}' \\\n  \"https://$cluster_address/api/v2/sla_domain/$sla_id/pause\"\n```\nThe response confirms the new attribute and also includes the other\nattributes that were not changed.\n\n```bash\n{\n  \"id\": \"$sla_id\",\n  \"name\": \"Daily SLA\",\n  \"frequencies\": [\n    \"daily\": {\n      \"frequency\": 1,\n      \"retention\": 7\n    }\n  ],\n  \"allowedBackupWindows\": [],\n  \"firstFullAllowedBackupWindows\": [],\n  \"isPaused\": true\n}\n\n```\n\n# Virtual machines\n\nThe Rubrik cluster protects virtual machines running in a VMware vSphere\nenvironment through the VADP APIs. The Rubrik cluster also works with\nthe Rubrik Backup Service running on the virtual machine to provide:\n\n* Optimal performance when restoring files and folders to the virtual machine\n* Application consistent snapshots of a Windows virtual machine\n\n## Snapshot mount operations\nSnapshot mount operations include the following possible actions:\n* Mounting a snapshot by using Live Mount\n* Exporting a snapshot\n\n### Mounting a snapshot by using Live Mount\n\nMount a new virtual machine from a snapshot or point-in-time (PIT) by using the Live Mount feature. To use Live Mount, send a POST request to [`/vmware/vm/{id}/mount`](#operation/createMountV2). This request optionally takes the parameters described in the following table. If neither `recoveryPoint` nor `snapshotId` are passed in, we will trigger a PIT Live Mount with the latest recoverable time.\n\n| Name | Description |\n| ---- | ----------- |\n| `recoveryPoint` | A point in time to recover to. If this parameter is passed in, we will trigger a PIT Live Mount.\n| `snapshotId` | The ID of the snapshot to recover to. If this parameter is passed in and recoveryPoint is not specified, we will trigger a Live Mount using this snapshot.\n| `hostId` | The `id` of an ESXi hypervisor. When not specified, the Rubrik cluster uses the original hypervisor. |\n| `vmName` | Assigns a specified name to the virtual machine. |\n| `dataStoreName` | Obsolete parameter. |\n| `disableNetwork` | Determines whether the virtual machine has access to the network. Use `true` to Mount the snapshot with network access disabled. Use `false` to allow the virtual machine to access the network. |\n| `removeNetworkDevices` | Determines whether the virtual machine has network devices. Use `true` to remove network devices from the virtual machine. Use `false` to keep the existing network devices. |\n| `powerOn` | Determines whether the virtual machine is powered on after mounting. Use `true` to power on the virtual machine. Use `false` to leave the virtual machine powered off after mounting. |\n\n```bash\ncurl -X POST \\\n  -d '{\n     \"hostId\": \"$esxi_id\",\n     \"vmName\": \"$vm_name\",\n     \"dataStoreName\": \"$datastore_name\",\n     \"disableNetwork\": \"$network_state\",\n     \"removeNetworkDevices\": \"$network_devices_state\",\n     \"powerOn\": \"$power_state\"\n  }'\\\n   \"https://$cluster_address/api/v2/vmware/vm/$vm_id/mount\"\n```\n\nThe Rubrik REST API server initiates the asynchronous request task and responds with a task object.\n\n```bash\n{\n  \"id\": \"$live_mount_task_id\",\n  \"status\": \"QUEUED\",\n  \"progress\": 0,\n  \"startTime\": \"$timestamp\",\n  \"links\": [\n    {\n      \"href\": \"https://$cluster_address/api/v1/vmware/vcenter/request/$request_id\",\n      \"rel\": \"self\"\n    }\n  ]\n}\n```\n\n### Exporting a snapshot\n\nTo export a snapshot send a POST request to [`/vmware/vm/{id}/export`](#operation/createExportV2). This request optionally takes the parameters described in the following table. If neither `recoveryPoint` nor `snapshotId` are passed in, we will trigger a PIT Live Mount with the latest recoverable time.\n\n| Name | Description |\n| ---- | ----------- |\n| `recoveryPoint` | A point in time to recover to. If this parameter is passed in, we will trigger a PIT Live Mount.\n| `snapshotId` | The ID of the snapshot to recover to. If this parameter is passed in and recoveryPoint is not specified, we will trigger a Live Mount using this snapshot.\n| `datastoreId` | The `id` of a datastore for the specified ESXi hypervisor. |\n| `vmName` | Assigns a specified name to the virtual machine. |\n| `hostId` | The `id` of an ESXi hypervisor. |\n| `disableNetwork` | Determines whether the virtual machine has access to the network. Use `true` to Mount the snapshot with network access disabled. Use `false` to allow the virtual machine to access the network. |\n| `removeNetworkDevices` | Determines whether the virtual machine has network devices. Use `true` to remove network devices from the virtual machine. Use `false` to keep the existing network devices. |\n| `powerOn` | Determines whether the virtual machine is powered on after mounting. Use `true` to power on the virtual machine. Use `false` to leave the virtual machine powered off after mounting. |\n| `unregisterVm` | Determines whether to add the exported virtual machine to the vCenter Server inventory. Use `true` to remove the exported virtual machine from the associated vCenter Server inventory. Use `false` to add the exported virtual machine to the associated vCenter Server inventory. |\n\n\n```bash\ncurl -X  -d \\\n '{\n   \"datastoreId\": \"string\",\n   \"vmName\": \"string\",\n   \"hostId\": \"string\",\n   \"disableNetwork\": true,\n   \"removeNetworkDevices\": true,\n   \"powerOn\": true,\n   \"unregisterVm\": true\n }' \\\n \"https://$cluster_address/api/v2/vmware/vm/$vm_id/export\"\n\nThe Rubrik REST API server initiates the asynchronous request task and responds with a task object.\n\n```bash\n{\n  \"id\": \"$export_task_id\",\n  \"status\": \"QUEUED\",\n  \"progress\": 0,\n  \"startTime\": \"$timestamp\",\n  \"links\": [\n    {\n      \"href\": \"https://$cluster_address/api/v1/vmware/vcenter/request/$request_id\",\n      \"rel\": \"self\"\n    }\n  ]\n}\n```\n\n### Mounting a snapshot by using Instant Recovery\n\nReplaces a virtual machine by restoring from a snapshot or performing a point-in-time (PIT) recovery by using the Instant Recovery feature. Using Instant Recovery requires a POST request to [`/vmware/vm/{id}/instant_recover`](#operation/createInstantRecoveryV2). When this request does not contain either recoveryPoint or snapshotId, the PIT Instant Recovery uses the latest recoverable time.\n\n| Name | Description |\n| `recoveryPoint` | A point in time to recover to. If this parameter is passed in, we will trigger a PIT Instant Recovery.\n| `snapshotId` | The ID of the snapshot to recover to. If this parameter is passed in and recoveryPoint is not specified, we will trigger an Instant Recovery using this snapshot.\n| `hostId` | The `id` of an ESXi hypervisor. When not specified, the Rubrik cluster uses the original hypervisor. |\n| `vmName` | Assigns a specified name to the virtual machine. |\n| `removeNetworkDevices` | Determines whether the virtual machine has network devices. Use `true` to remove network devices from the virtual machine. Use `false` to keep the existing network devices. |\n\n```bash\ncurl -X POST \\\n  -d '{\n     \"hostId\": \"$esxi_id\",\n     \"vmName\": \"$vm_name\",\n     \"removeNetworkDevices\": \"$network_devices_state\",\n  }'\\\n   \"https://$cluster_address/api/v2/vmware/vm/$vm_id/instant_recover\"\n```\n\nThe Rubrik REST API server initiates the asynchronous request task and responds with a task object.\n\n```bash\n{\n  \"id\": \"$instant_recovery_task_id\",\n  \"status\": \"QUEUED\",\n  \"progress\": 0,\n  \"startTime\": \"$timestamp\",\n  \"links\": [\n    {\n      \"href\": \"https://$cluster_address/api/v1/vmware/vcenter/request/$request_id\",\n      \"rel\": \"self\"\n    }\n  ]\n}\n```\n\n# Legal\n\n## Copyright\n\nRubrik REST API - Copyright © 2017-2018 Rubrik Inc.\nAll rights reserved.\n\nThis documentation may be used free of charge. Selling without prior written consent is prohibited.\nObtain permission before redistributing. In all cases, this copyright notice and disclaimer must remain\nintact.\n\n\n## Disclaimer\n\nTHE CONTENTS OF THIS DOCUMENTATION ARE PROVIDED \"AS IS,\" AND COPYRIGHT HOLDERS MAKE NO\nREPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,\nWARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR\nTITLE; THAT THE CONTENTS OF THE DOCUMENTATION ARE SUITABLE FOR ANY PURPOSE; THAT THE\nIMPLEMENTATION OF SUCH CONTENTS WILL NOT INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS,\nTRADEMARKS OR OTHER RIGHTS.\nCOPYRIGHT HOLDERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL\nDAMAGES ARISING OUT OF ANY USE OF THE DOCUMENTATION OR THE PERFORMANCE OR IMPLEMENTATION OF\nTHE CONTENTS THEREOF.\n\n## Trademarks\n\nRubrik, the Rubrik logo, Rubrik Envision, and Rubrik Edge are trademarks or registered trademarks of Rubrik, Inc. in the U.S. and/or other countries. All other trademarks are the property of their respective owners.\n",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "sla domain",
+			"item": [
+				{
+					"name": "{id}",
+					"item": [
+						{
+							"name": "Get SLA Domain details",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/sla_domain/:id",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sla_domain",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "schema type not provided",
+											"description": "(Required) ID of the SLA Domain."
+										}
+									]
+								},
+								"description": "Retrieve summary information for a specified SLA Domain."
+							},
+							"response": [
+								{
+									"name": "Object containing information about the SLA Domain",
+									"originalRequest": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/sla_domain/:id",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"sla_domain",
+												":id"
+											],
+											"variable": [
+												{
+													"key": "id"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "text",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "text/plain"
+										}
+									],
+									"cookie": [],
+									"body": ""
+								}
+							]
+						},
+						{
+							"name": "Remove SLA Domain",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/sla_domain/:id",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sla_domain",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "schema type not provided",
+											"description": "(Required) ID of the SLA Domain."
+										}
+									]
+								},
+								"description": "Delete an SLA Domain from a Rubrik cluster. The SLA Domain must not be assigned to any VMs, filesets or databases."
+							},
+							"response": [
+								{
+									"name": "Removed the specified SLA Domain.",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/sla_domain/:id",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"sla_domain",
+												":id"
+											],
+											"variable": [
+												{
+													"key": "id"
+												}
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "text",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "text/plain"
+										}
+									],
+									"cookie": [],
+									"body": ""
+								}
+							]
+						},
+						{
+							"name": "Patch SLA Domain",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/sla_domain/:id",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sla_domain",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "schema type not provided",
+											"description": "(Required) ID of the SLA Domain."
+										}
+									]
+								},
+								"description": "Patch the properties of an SLA Domain."
+							},
+							"response": [
+								{
+									"name": "Object containing the patched SLA Domain.",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/sla_domain/:id",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"sla_domain",
+												":id"
+											],
+											"variable": [
+												{
+													"key": "id"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "text",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "text/plain"
+										}
+									],
+									"cookie": [],
+									"body": ""
+								}
+							]
+						},
+						{
+							"name": "Pause an SLA Domain",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/sla_domain/:id/pause",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sla_domain",
+										":id",
+										"pause"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "schema type not provided",
+											"description": "(Required) ID of the SLA Domain."
+										}
+									]
+								},
+								"description": "Pause protection of an SLA Domain."
+							},
+							"response": [
+								{
+									"name": "Object that contains the paused SLA Domain.",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/sla_domain/:id/pause",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"sla_domain",
+												":id",
+												"pause"
+											],
+											"variable": [
+												{
+													"key": "id"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "text",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "text/plain"
+										}
+									],
+									"cookie": [],
+									"body": ""
+								}
+							]
+						}
+					],
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
+				},
+				{
+					"name": "Get list of SLA Domains",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sla_domain?primary_cluster_id=&name=&sort_by=&sort_order=&data_sources=&snapshot_ids=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sla_domain"
+							],
+							"query": [
+								{
+									"key": "primary_cluster_id",
+									"value": "",
+									"description": "Limits the information retrieved to those SLA Domains that are associated with the Rubrik cluster ID that is specified by primary_cluster_id. Use **local** for the Rubrik cluster that is hosting the current REST API session."
+								},
+								{
+									"key": "name",
+									"value": "",
+									"description": "Limit the list information to those SLA Domains which match the specified SLA Domain 'name' value."
+								},
+								{
+									"key": "sort_by",
+									"value": "",
+									"description": "Attribute to use to sort the SLA Domains summary information. Optionally use **_sort_order_** to specify whether to sort in ascending or descending order (This can only be one of name)"
+								},
+								{
+									"key": "sort_order",
+									"value": "",
+									"description": "Sort order, either ascending or descending. If not specified, SLA Domain summary results will be sorted in ascending order (This can only be one of asc,desc)"
+								},
+								{
+									"key": "data_sources",
+									"value": "",
+									"description": "Limit the list information to SLA Domains that can be assigned to specified data sources."
+								},
+								{
+									"key": "snapshot_ids",
+									"value": "",
+									"description": "Limit the list information to SLA Domains that can be assigned to specified snapshots."
+								}
+							]
+						},
+						"description": "Retrieve summary information for all SLA Domains."
+					},
+					"response": [
+						{
+							"name": "Summary information for SLA Domains",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/sla_domain?primary_cluster_id=&name=&sort_by=&sort_order=&data_sources=&snapshot_ids=",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sla_domain"
+									],
+									"query": [
+										{
+											"key": "primary_cluster_id",
+											"value": ""
+										},
+										{
+											"key": "name",
+											"value": ""
+										},
+										{
+											"key": "sort_by",
+											"value": ""
+										},
+										{
+											"key": "sort_order",
+											"value": ""
+										},
+										{
+											"key": "data_sources",
+											"value": ""
+										},
+										{
+											"key": "snapshot_ids",
+											"value": ""
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Create SLA Domain",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sla_domain",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sla_domain"
+							]
+						},
+						"description": "Create a new SLA Domain on a Rubrik cluster by specifying Domain rules and policies."
+					},
+					"response": [
+						{
+							"name": "Summary of newly created SLA Domain.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/sla_domain",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sla_domain"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "vmware/vm/{id}",
+			"item": [
+				{
+					"name": "Export a VM",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/vmware/vm/:id/export",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vmware",
+								"vm",
+								":id",
+								"export"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "schema type not provided",
+									"description": "(Required) ID of a VM."
+								}
+							]
+						},
+						"description": "Export a virtual machine from a snapshot, using a specified hypervisor host as the datastore."
+					},
+					"response": [
+						{
+							"name": "Status of the export request.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/vmware/vm/:id/export",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"vmware",
+										"vm",
+										":id",
+										"export"
+									],
+									"variable": [
+										{
+											"key": "id"
+										}
+									]
+								}
+							},
+							"status": "Accepted",
+							"code": 202,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Instantly recover a VM",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/vmware/vm/:id/instant_recover",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vmware",
+								"vm",
+								":id",
+								"instant_recover"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "schema type not provided",
+									"description": "(Required) ID of a VM."
+								}
+							]
+						},
+						"description": "Instantly recover a virtual machine from either a snapshot ID or a timestamp using a specified configuration. The Instant Recovery request starts the virtual machine with networking enabled and renames and powers off the source virtual machine, if it still exists."
+					},
+					"response": [
+						{
+							"name": "Status of the Instant Recovery request.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/vmware/vm/:id/instant_recover",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"vmware",
+										"vm",
+										":id",
+										"instant_recover"
+									],
+									"variable": [
+										{
+											"key": "id"
+										}
+									]
+								}
+							},
+							"status": "Accepted",
+							"code": 202,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Live mount a VM",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/vmware/vm/:id/mount",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vmware",
+								"vm",
+								":id",
+								"mount"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "schema type not provided",
+									"description": "(Required) ID of a VM."
+								}
+							]
+						},
+						"description": "Create a request to Live Mount a virtual machine from either a snapshot ID or a timestamp using a specified configuration."
+					},
+					"response": [
+						{
+							"name": "Status of the Live Mount request.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/vmware/vm/:id/mount",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"vmware",
+										"vm",
+										":id",
+										"mount"
+									],
+									"variable": [
+										{
+											"key": "id"
+										}
+									]
+								}
+							},
+							"status": "Accepted",
+							"code": 202,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"variable": [
+		{
+			"id": "baseUrl",
+			"key": "baseUrl",
+			"value": "/",
+			"type": "string"
+		}
+	],
+	"protocolProfileBehavior": {}
+}
